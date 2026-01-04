@@ -7,6 +7,7 @@ from datetime import datetime
 import telebot
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+import zipfile
 
 # ======================= CONFIGURATION =======================
 BOT_TOKEN = "8571008347:AAGqbmrpSrhvBEL9dOypOqLhhJh0YIM1q0Q"
@@ -195,6 +196,12 @@ def fix_url_format(url):
     
     # Remove any leading/trailing spaces
     url = url.strip()
+    
+    # Remove "https" or "http" if they appear in the middle
+    if " https" in url:
+        url = url.replace(" https", "https")
+    if " http" in url:
+        url = url.replace(" http", "http")
     
     # If URL starts with "https " or "http ", remove the space
     if url.startswith("https "):
@@ -431,35 +438,35 @@ def start_command(message):
     db.add_user(user_id, username)
     is_admin = (user_id == ADMIN_ID)
     
-    welcome_msg = f"""👋 **Welcome to LinkedIn Accounts Bot!**
+    welcome_msg = f"""👋 <b>Welcome to LinkedIn Accounts Bot!</b>
 
-💰 **Your Balance:** ${db.get_balance(user_id):.2f}
-👤 **Your User ID:** `{user_id}`
+💰 <b>Your Balance:</b> ${db.get_balance(user_id):.2f}
+👤 <b>Your User ID:</b> <code>{user_id}</code>
 
-**Features:**
+<b>Features:</b>
 • Buy LinkedIn Accounts
 • Bulk Orders (1-100)
 • Secure Payments
 • 24/7 Support
-• Instant Delivery as .txt file
+• Instant Delivery as .txt file (One-line format)
 
-**Support:** {SUPPORT_USERNAME}"""
+<b>Support:</b> {SUPPORT_USERNAME}"""
     
     bot.send_message(message.chat.id, welcome_msg, 
                     reply_markup=main_menu_keyboard(is_admin),
-                    parse_mode="Markdown")
+                    parse_mode="HTML")
 
 @bot.message_handler(commands=['myid'])
 def myid_command(message):
     user_id = message.from_user.id
-    bot.send_message(message.chat.id, f"👤 **Your User ID:** `{user_id}`", 
-                    parse_mode="Markdown")
+    bot.send_message(message.chat.id, f"👤 <b>Your User ID:</b> <code>{user_id}</code>", 
+                    parse_mode="HTML")
 
 @bot.message_handler(commands=['admin'])
 def admin_command(message):
     if message.from_user.id == ADMIN_ID:
-        bot.send_message(message.chat.id, "👑 **Admin Panel**", 
-                        reply_markup=admin_keyboard(), parse_mode="Markdown")
+        bot.send_message(message.chat.id, "👑 <b>Admin Panel</b>", 
+                        reply_markup=admin_keyboard(), parse_mode="HTML")
     else:
         bot.send_message(message.chat.id, "❌ Access denied!")
 
@@ -467,8 +474,8 @@ def admin_command(message):
 @bot.message_handler(func=lambda msg: msg.text == "📥 Add Stock")
 def add_stock_menu(msg):
     if msg.from_user.id == ADMIN_ID:
-        bot.send_message(msg.chat.id, "📥 **Stock Management**\n\nSelect option:", 
-                        reply_markup=stock_management_keyboard(), parse_mode="Markdown")
+        bot.send_message(msg.chat.id, "📥 <b>Stock Management</b>\n\nSelect option:", 
+                        reply_markup=stock_management_keyboard(), parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
@@ -482,7 +489,7 @@ def stock_management(msg):
                            reply_markup=stock_management_keyboard())
             return
         
-        response = "📦 **Current Stock**\n\n"
+        response = "📦 <b>Current Stock</b>\n\n"
         for item in stock:
             acc_type, conn_type, count = item
             acc_name = "Two-Step" if acc_type == "two_step" else "Hotmail"
@@ -490,46 +497,46 @@ def stock_management(msg):
         
         response += "\nSelect option below:"
         bot.send_message(msg.chat.id, response, 
-                        reply_markup=stock_management_keyboard(), parse_mode="Markdown")
+                        reply_markup=stock_management_keyboard(), parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
 @bot.callback_query_handler(func=lambda call: call.data == "add_bulk_stock")
 def add_bulk_stock_start(call):
     bot.edit_message_text(
-        "📦 **Add Bulk Accounts**\n\n"
+        "📦 <b>Add Bulk Accounts</b>\n\n"
         "Send multiple accounts in this format:\n"
-        "`email:pass:linkedinpass:recovery:url`\n\n"
-        "**Put each account on a new line:**\n"
-        "```\n"
+        "<code>email:pass:linkedinpass:recovery:url</code>\n\n"
+        "<b>Put each account on a new line:</b>\n"
+        "<code>\n"
         "test1@gmail.com:pass123:linkedinpass:recovery1@gmail.com:url1\n"
         "test2@gmail.com:pass456:linkedinpass:recovery2@gmail.com:url2\n"
         "test3@gmail.com:pass789:linkedinpass:recovery3@gmail.com:url3\n"
-        "```\n\n"
-        "**First select account type:**",
+        "</code>\n\n"
+        "<b>First select account type:</b>",
         call.message.chat.id, call.message.message_id,
         reply_markup=stock_type_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "stock_two_step")
 def handle_stock_two_step(call):
     bot.edit_message_text(
-        "📦 **Add Single Account – Two-Step**\n\nSelect connection type:",
+        "📦 <b>Add Single Account – Two-Step</b>\n\nSelect connection type:",
         call.message.chat.id,
         call.message.message_id,
         reply_markup=connection_selection_keyboard("two_step", is_bulk=False),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "stock_hotmail")
 def handle_stock_hotmail(call):
     bot.edit_message_text(
-        "📦 **Add Single Account – Hotmail**\n\nSelect connection type:",
+        "📦 <b>Add Single Account – Hotmail</b>\n\nSelect connection type:",
         call.message.chat.id,
         call.message.message_id,
         reply_markup=connection_selection_keyboard("hotmail", is_bulk=False),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('stock_') and not call.data.startswith('stock_two_step') and not call.data.startswith('stock_hotmail'))
@@ -547,16 +554,19 @@ def handle_stock_connection_selection(call):
         return
     
     msg = bot.edit_message_text(
-        f"📝 **Add Single Account**\n\n"
-        f"**Type:** {account_type}\n"
-        f"**Connection:** {connection_type}\n\n"
-        f"Send account details:\n"
-        f"**Format:** `email:pass:linkedinpass:recovery:url`\n\n"
-        f"**Example:**\n"
-        f"`warnerbridget2773j@gmail.com:%%Hanif%9:%%Hanif%9:kunmeas@chitthi.in:https://www.linkedin.com/in/warner-bridget-6798a7321`",
+        f"📝 <b>Add Single Account</b>\n\n"
+        f"<b>Type:</b> {account_type}\n"
+        f"<b>Connection:</b> {connection_type}\n\n"
+        f"Send account details in ONE LINE format:\n\n"
+        f"<b>For Two-Step:</b>\n"
+        f"<code>email:mail_pass:linkedin_pass:2fa_code:url</code>\n\n"
+        f"<b>For Hotmail:</b>\n"
+        f"<code>email:mail_pass:linkedin_pass:recovery_email:url</code>\n\n"
+        f"<b>Example (Two-Step):</b>\n"
+        f"<code>leonardomorris1481i@gmail.com:%Date10.07%:CEZFD3U5VF64IPMWVKQMZQ5VNH75EUE3:2fa_code_here:https://www.linkedin.com/in/leonardo-morris-5a2898332/</code>",
         call.message.chat.id,
         call.message.message_id,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     bot.register_next_step_handler(
@@ -569,16 +579,17 @@ def bulk_connection_select(call):
     _, account_type, connection_type = call.data.split("_", 2)
     
     msg = bot.edit_message_text(
-        f"📦 **Bulk Add Accounts**\n\n"
+        f"📦 <b>Bulk Add Accounts</b>\n\n"
         f"Type: {account_type}\n"
         f"Connection: {connection_type}\n\n"
-        "Send multiple accounts (one per line):\n"
-        "Format: `email:pass:linkedinpass:recovery:url`\n\n"
-        "**Example:**\n"
-        "warnerbridget2773j@gmail.com:%%Hanif%9:%%Hanif%9:kunmeas@chitthi.in:https://www.linkedin.com/in/warner-bridget-6798a7321",
+        "Send multiple accounts (one per line):\n\n"
+        f"<b>Format for {'Two-Step' if account_type == 'two_step' else 'Hotmail'}:</b>\n"
+        f"<code>email:mail_pass:linkedin_pass:{'2fa_code' if account_type == 'two_step' else 'recovery_email'}:url</code>\n\n"
+        f"<b>Example ({'Two-Step' if account_type == 'two_step' else 'Hotmail'}):</b>\n"
+        f"<code>leonardomorris1481i@gmail.com:%Date10.07%:CEZFD3U5VF64IPMWVKQMZQ5VNH75EUE3:{'2fa_code_here' if account_type == 'two_step' else 'recovery@gmail.com'}:https://www.linkedin.com/in/leonardo-morris-5a2898332/</code>",
         call.message.chat.id,
         call.message.message_id,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     bot.register_next_step_handler(
@@ -594,34 +605,36 @@ def process_single_stock(message, account_type, connection_type):
             bot.send_message(message.chat.id, "❌ Empty account details!")
             return
         
-        # Validate format
-        if account_details.count(':') < 4:
+        # Validate format - must have exactly 4 colons (5 parts)
+        if account_details.count(':') != 4:
             bot.send_message(message.chat.id, 
-                           "❌ Invalid format! Use: `email:pass:linkedinpass:recovery:url`\n\n"
-                           "**Correct Format:**\n"
-                           "`email:password:linkedin_password:recovery_email:profile_url`",
-                           parse_mode="Markdown")
+                           f"❌ Invalid format! Must have exactly 5 parts separated by ':'\n\n"
+                           f"<b>Correct Format for {'Two-Step' if account_type == 'two_step' else 'Hotmail'}:</b>\n"
+                           f"<code>email:mail_pass:linkedin_pass:{'2fa_code' if account_type == 'two_step' else 'recovery_email'}:url</code>\n\n"
+                           f"<b>Example:</b>\n"
+                           f"<code>leonardomorris1481i@gmail.com:%Date10.07%:CEZFD3U5VF64IPMWVKQMZQ5VNH75EUE3:{'2fa_code_here' if account_type == 'two_step' else 'recovery@gmail.com'}:https://www.linkedin.com/in/leonardo-morris-5a2898332/</code>",
+                           parse_mode="HTML")
             return
         
         # Add to file
         count = add_account_to_file(account_type, connection_type, account_details)
         db.update_stock(account_type, connection_type, count)
         
-        response = f"""✅ **Account Added Successfully!**
+        response = f"""✅ <b>Account Added Successfully!</b>
 
-🔐 **Type:** {account_type}
-🔗 **Connection:** {connection_type}
-📥 **Added:** 1 account
-📦 **Total Stock:** {count} accounts
+🔐 <b>Type:</b> {account_type}
+🔗 <b>Connection:</b> {connection_type}
+📥 <b>Added:</b> 1 account
+📦 <b>Total Stock:</b> {count} accounts
 
-🔐 **Added Account:**
-`{account_details}`"""
+🔐 <b>Added Account:</b>
+<code>{account_details}</code>"""
         
-        bot.send_message(message.chat.id, response, parse_mode="Markdown")
+        bot.send_message(message.chat.id, response, parse_mode="HTML")
         
         # Show stock management options again
-        bot.send_message(message.chat.id, "📥 **Stock Management**", 
-                        reply_markup=stock_management_keyboard(), parse_mode="Markdown")
+        bot.send_message(message.chat.id, "📥 <b>Stock Management</b>", 
+                        reply_markup=stock_management_keyboard(), parse_mode="HTML")
         
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Error: {str(e)}")
@@ -642,11 +655,12 @@ def process_bulk_stock(message, account_type, connection_type):
             if not account_line:
                 continue
                 
-            # Validate format
-            if account_line.count(':') < 4:
+            # Validate format - must have exactly 4 colons (5 parts)
+            if account_line.count(':') != 4:
                 bot.send_message(message.chat.id, 
-                               f"❌ Skipping invalid format: `{account_line[:50]}...`\n"
-                               f"Use: email:pass:linkedinpass:recovery:url")
+                               f"❌ Skipping invalid format: {account_line[:50]}...\n"
+                               f"Must have exactly 5 parts: email:mail_pass:linkedin_pass:{'2fa_code' if account_type == 'two_step' else 'recovery_email'}:url",
+                               parse_mode="HTML")
                 failed_count += 1
                 continue
             
@@ -657,19 +671,19 @@ def process_bulk_stock(message, account_type, connection_type):
         
         total_count = db.get_stock(account_type, connection_type)
         
-        response = f"""✅ **Bulk Accounts Added Successfully!**
+        response = f"""✅ <b>Bulk Accounts Added Successfully!</b>
 
-🔐 **Type:** {account_type}
-🔗 **Connection:** {connection_type}
-📥 **Successfully Added:** {added_count} accounts
-❌ **Failed:** {failed_count} accounts
-📦 **Total Stock:** {total_count} accounts"""
+🔐 <b>Type:</b> {account_type}
+🔗 <b>Connection:</b> {connection_type}
+📥 <b>Successfully Added:</b> {added_count} accounts
+❌ <b>Failed:</b> {failed_count} accounts
+📦 <b>Total Stock:</b> {total_count} accounts"""
         
-        bot.send_message(message.chat.id, response, parse_mode="Markdown")
+        bot.send_message(message.chat.id, response, parse_mode="HTML")
         
         # Show stock management options again
-        bot.send_message(message.chat.id, "📥 **Stock Management**", 
-                        reply_markup=stock_management_keyboard(), parse_mode="Markdown")
+        bot.send_message(message.chat.id, "📥 <b>Stock Management</b>", 
+                        reply_markup=stock_management_keyboard(), parse_mode="HTML")
         
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Error: {str(e)}")
@@ -677,11 +691,11 @@ def process_bulk_stock(message, account_type, connection_type):
 @bot.callback_query_handler(func=lambda call: call.data == "add_single_stock")
 def add_single_stock_menu(call):
     bot.edit_message_text(
-        "➕ **Add Single Account**\n\nSelect account type:",
+        "➕ <b>Add Single Account</b>\n\nSelect account type:",
         call.message.chat.id,
         call.message.message_id,
         reply_markup=stock_type_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "view_all_stock")
@@ -691,51 +705,51 @@ def view_all_stock(call):
     if not stock:
         bot.edit_message_text("📭 No stock available!", 
                             call.message.chat.id, call.message.message_id,
-                            parse_mode="Markdown")
+                            parse_mode="HTML")
         return
     
-    response = "📦 **Complete Stock Details**\n\n"
+    response = "📦 <b>Complete Stock Details</b>\n\n"
     
     # Group by account type
     two_step_stock = [s for s in stock if s[0] == "two_step"]
     hotmail_stock = [s for s in stock if s[0] == "hotmail"]
     
     if two_step_stock:
-        response += "🔐 **Two-Step Accounts:**\n"
+        response += "🔐 <b>Two-Step Accounts:</b>\n"
         for item in two_step_stock:
             _, conn_type, count = item
             response += f"• {conn_type}: {count} accounts\n"
         
         # Calculate total
         two_step_total = sum(item[2] for item in two_step_stock)
-        response += f"📊 **Total:** {two_step_total} accounts\n\n"
+        response += f"📊 <b>Total:</b> {two_step_total} accounts\n\n"
     
     if hotmail_stock:
-        response += "📧 **Hotmail Accounts:**\n"
+        response += "📧 <b>Hotmail Accounts:</b>\n"
         for item in hotmail_stock:
             _, conn_type, count = item
             response += f"• {conn_type}: {count} accounts\n"
         
         # Calculate total
         hotmail_total = sum(item[2] for item in hotmail_stock)
-        response += f"📊 **Total:** {hotmail_total} accounts\n\n"
+        response += f"📊 <b>Total:</b> {hotmail_total} accounts\n\n"
     
     # Overall total
     overall_total = sum(item[2] for item in stock)
-    response += f"📈 **Overall Total Stock:** {overall_total} accounts"
+    response += f"📈 <b>Overall Total Stock:</b> {overall_total} accounts"
     
     bot.edit_message_text(response, call.message.chat.id, call.message.message_id,
-                         parse_mode="Markdown")
+                         parse_mode="HTML")
 
 @bot.callback_query_handler(func=lambda call: call.data == "clear_stock_menu")
 def clear_stock_menu(call):
     bot.edit_message_text(
-        "🗑️ **Clear Stock**\n\n"
-        "⚠️ **Warning:** This will remove ALL accounts from stock!\n\n"
+        "🗑️ <b>Clear Stock</b>\n\n"
+        "⚠️ <b>Warning:</b> This will remove ALL accounts from stock!\n\n"
         "Select what to clear:",
         call.message.chat.id, call.message.message_id,
         reply_markup=clear_stock_options_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 def clear_stock_options_keyboard():
@@ -754,29 +768,29 @@ def clear_stock_options_keyboard():
 def handle_clear_stock(call):
     if call.data == "clear_two_step":
         msg = bot.edit_message_text(
-            "🗑️ **Clear Two-Step Stock**\n\n"
+            "🗑️ <b>Clear Two-Step Stock</b>\n\n"
             "Select connection type to clear:",
             call.message.chat.id, call.message.message_id,
             reply_markup=clear_connection_keyboard("two_step"),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     
     elif call.data == "clear_hotmail":
         msg = bot.edit_message_text(
-            "🗑️ **Clear Hotmail Stock**\n\n"
+            "🗑️ <b>Clear Hotmail Stock</b>\n\n"
             "Select connection type to clear:",
             call.message.chat.id, call.message.message_id,
             reply_markup=clear_connection_keyboard("hotmail"),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     
     elif call.data == "clear_all_stock":
         msg = bot.edit_message_text(
-            "⚠️ **Clear ALL Stock**\n\n"
+            "⚠️ <b>Clear ALL Stock</b>\n\n"
             "Are you sure? This will remove ALL accounts from ALL categories!\n\n"
             "Type 'YES' to confirm:",
             call.message.chat.id, call.message.message_id,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         bot.register_next_step_handler(msg, confirm_clear_all_stock)
 
@@ -799,14 +813,14 @@ def clear_specific_stock(call):
     current_count = db.get_stock(account_type, connection_type)
     
     msg = bot.edit_message_text(
-        f"🗑️ **Clear Stock**\n\n"
-        f"**Type:** {account_type}\n"
-        f"**Connection:** {connection_type}\n"
-        f"**Current Stock:** {current_count} accounts\n\n"
-        f"⚠️ **This action cannot be undone!**\n\n"
+        f"🗑️ <b>Clear Stock</b>\n\n"
+        f"<b>Type:</b> {account_type}\n"
+        f"<b>Connection:</b> {connection_type}\n"
+        f"<b>Current Stock:</b> {current_count} accounts\n\n"
+        f"⚠️ <b>This action cannot be undone!</b>\n\n"
         f"Type 'YES' to confirm:",
         call.message.chat.id, call.message.message_id,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     bot.register_next_step_handler(msg, lambda m: confirm_clear_stock(m, account_type, connection_type))
@@ -815,24 +829,24 @@ def confirm_clear_stock(message, account_type, connection_type):
     if message.text.upper() == "YES":
         # Clear the stock
         if clear_stock_file(account_type, connection_type):
-            response = f"""✅ **Stock Cleared Successfully!**
+            response = f"""✅ <b>Stock Cleared Successfully!</b>
 
-🔐 **Type:** {account_type}
-🔗 **Connection:** {connection_type}
-🗑️ **Cleared:** All accounts removed
-📦 **Current Stock:** 0 accounts
+🔐 <b>Type:</b> {account_type}
+🔗 <b>Connection:</b> {connection_type}
+🗑️ <b>Cleared:</b> All accounts removed
+📦 <b>Current Stock:</b> 0 accounts
 
 ⚠️ A backup has been saved in the 'backups' folder."""
             
-            bot.send_message(message.chat.id, response, parse_mode="Markdown")
+            bot.send_message(message.chat.id, response, parse_mode="HTML")
         else:
-            bot.send_message(message.chat.id, "❌ Failed to clear stock!", parse_mode="Markdown")
+            bot.send_message(message.chat.id, "❌ Failed to clear stock!", parse_mode="HTML")
     else:
         bot.send_message(message.chat.id, "❌ Clear operation cancelled!")
     
     # Return to stock management
-    bot.send_message(message.chat.id, "📥 **Stock Management**", 
-                    reply_markup=stock_management_keyboard(), parse_mode="Markdown")
+    bot.send_message(message.chat.id, "📥 <b>Stock Management</b>", 
+                    reply_markup=stock_management_keyboard(), parse_mode="HTML")
 
 def confirm_clear_all_stock(message):
     if message.text.upper() == "YES":
@@ -849,29 +863,29 @@ def confirm_clear_all_stock(message):
             if clear_stock_file("hotmail", conn_type):
                 cleared_count += 1
         
-        response = f"""✅ **All Stock Cleared Successfully!**
+        response = f"""✅ <b>All Stock Cleared Successfully!</b>
 
-🗑️ **Cleared:** {cleared_count} categories
-📦 **Current Stock:** 0 accounts total
+🗑️ <b>Cleared:</b> {cleared_count} categories
+📦 <b>Current Stock:</b> 0 accounts total
 
 ⚠️ Backups have been saved in the 'backups' folder."""
         
-        bot.send_message(message.chat.id, response, parse_mode="Markdown")
+        bot.send_message(message.chat.id, response, parse_mode="HTML")
     else:
         bot.send_message(message.chat.id, "❌ Clear operation cancelled!")
     
     # Return to stock management
-    bot.send_message(message.chat.id, "📥 **Stock Management**", 
-                    reply_markup=stock_management_keyboard(), parse_mode="Markdown")
+    bot.send_message(message.chat.id, "📥 <b>Stock Management</b>", 
+                    reply_markup=stock_management_keyboard(), parse_mode="HTML")
 
 @bot.callback_query_handler(func=lambda call: call.data == "export_stock")
 def export_stock_menu(call):
     bot.edit_message_text(
-        "📤 **Export Stock**\n\n"
+        "📤 <b>Export Stock</b>\n\n"
         "Select what to export:",
         call.message.chat.id, call.message.message_id,
         reply_markup=export_options_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 def export_options_keyboard():
@@ -890,20 +904,20 @@ def export_options_keyboard():
 def handle_export_stock(call):
     if call.data == "export_two_step":
         bot.edit_message_text(
-            "📤 **Export Two-Step Stock**\n\n"
+            "📤 <b>Export Two-Step Stock</b>\n\n"
             "Select connection type:",
             call.message.chat.id, call.message.message_id,
             reply_markup=export_connection_keyboard("two_step"),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     
     elif call.data == "export_hotmail":
         bot.edit_message_text(
-            "📤 **Export Hotmail Stock**\n\n"
+            "📤 <b>Export Hotmail Stock</b>\n\n"
             "Select connection type:",
             call.message.chat.id, call.message.message_id,
             reply_markup=export_connection_keyboard("hotmail"),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     
     elif call.data == "export_all":
@@ -939,12 +953,12 @@ def export_specific_stock(call):
                 bot.send_document(
                     call.message.chat.id,
                     file,
-                    caption=f"📤 **Exported Stock**\n\n"
-                           f"🔐 **Type:** {account_type}\n"
-                           f"🔗 **Connection:** {connection_type}\n"
-                           f"📦 **Total Accounts:** {count}\n"
-                           f"📅 **Exported:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                    parse_mode="Markdown"
+                    caption=f"📤 <b>Exported Stock</b>\n\n"
+                           f"🔐 <b>Type:</b> {account_type}\n"
+                           f"🔗 <b>Connection:</b> {connection_type}\n"
+                           f"📦 <b>Total Accounts:</b> {count}\n"
+                           f"📅 <b>Exported:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    parse_mode="HTML"
                 )
         except Exception as e:
             bot.send_message(call.message.chat.id, f"❌ Error exporting: {str(e)}")
@@ -954,7 +968,6 @@ def export_specific_stock(call):
 def export_all_stock(chat_id, message_id):
     try:
         # Create a zip file with all stock
-        import zipfile
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         zip_filename = f"exports/all_stock_{timestamp}.zip"
@@ -986,11 +999,11 @@ def export_all_stock(chat_id, message_id):
             bot.send_document(
                 chat_id,
                 file,
-                caption=f"📤 **All Stock Exported**\n\n"
-                       f"📦 **Total Categories:** {len(stock)}\n"
-                       f"👤 **Total Accounts:** {total_accounts}\n"
-                       f"📅 **Exported:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                parse_mode="Markdown"
+                caption=f"📤 <b>All Stock Exported</b>\n\n"
+                       f"📦 <b>Total Categories:</b> {len(stock)}\n"
+                       f"👤 <b>Total Accounts:</b> {total_accounts}\n"
+                       f"📅 <b>Exported:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                parse_mode="HTML"
             )
         
         # Clean up
@@ -1002,31 +1015,31 @@ def export_all_stock(chat_id, message_id):
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_stock")
 def back_to_stock_management(call):
     bot.edit_message_text(
-        "📥 **Stock Management**\n\nSelect option:",
+        "📥 <b>Stock Management</b>\n\nSelect option:",
         call.message.chat.id, call.message.message_id,
         reply_markup=stock_management_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_admin")
 def back_to_admin_panel(call):
     bot.edit_message_text(
-        "👑 **Admin Panel**",
+        "👑 <b>Admin Panel</b>",
         call.message.chat.id, call.message.message_id,
         reply_markup=admin_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == "manual_add_stock")
 def manual_add_stock(call):
     msg = bot.edit_message_text(
-        "📝 **Manual Add Stock**\n\n"
+        "📝 <b>Manual Add Stock</b>\n\n"
         "Send in format:\n"
-        "`[account_type] [connection_type] [quantity] [account_details]`\n\n"
-        "**Example:**\n"
-        "`two_step 10+ 5 warnerbridget2773j@gmail.com:%%Hanif%9:%%Hanif%9:kunmeas@chitthi.in:https://www.linkedin.com/in/warner-bridget-6798a7321`",
+        "<code>[account_type] [connection_type] [quantity] [account_details]</code>\n\n"
+        "<b>Example:</b>\n"
+        "<code>two_step 10+ 5 leonardomorris1481i@gmail.com:%Date10.07%:CEZFD3U5VF64IPMWVKQMZQ5VNH75EUE3:2fa_code_here:https://www.linkedin.com/in/leonardo-morris-5a2898332/</code>",
         call.message.chat.id, call.message.message_id,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     bot.register_next_step_handler(msg, process_manual_stock)
 
@@ -1054,7 +1067,6 @@ def process_manual_stock(message):
                 db.update_stock(account_type, connection_type, count)
                 total_count = count
             
-            # Use HTML parse_mode which doesn't have issues with %
             response = f"""✅ <b>Stock added successfully!</b>
 
 📋 <b>Type:</b> {account_type}
@@ -1075,16 +1087,16 @@ def process_manual_stock(message):
 @bot.message_handler(func=lambda msg: msg.text == "🗑️ Clear Stock")
 def clear_stock_button(msg):
     if msg.from_user.id == ADMIN_ID:
-        bot.send_message(msg.chat.id, "🗑️ **Clear Stock**", 
-                        reply_markup=clear_stock_options_keyboard(), parse_mode="Markdown")
+        bot.send_message(msg.chat.id, "🗑️ <b>Clear Stock</b>", 
+                        reply_markup=clear_stock_options_keyboard(), parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
 @bot.message_handler(func=lambda msg: msg.text == "📤 Export Stock")
 def export_stock_button(msg):
     if msg.from_user.id == ADMIN_ID:
-        bot.send_message(msg.chat.id, "📤 **Export Stock**", 
-                        reply_markup=export_options_keyboard(), parse_mode="Markdown")
+        bot.send_message(msg.chat.id, "📤 <b>Export Stock</b>", 
+                        reply_markup=export_options_keyboard(), parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
@@ -1098,25 +1110,25 @@ def direct_delivery_menu(msg):
             InlineKeyboardButton("📋 Delivery History", callback_data="delivery_history")
         )
         
-        bot.send_message(msg.chat.id, "🚚 **Direct Delivery System**\n\nSelect option:",
-                        reply_markup=keyboard, parse_mode="Markdown")
+        bot.send_message(msg.chat.id, "🚚 <b>Direct Delivery System</b>\n\nSelect option:",
+                        reply_markup=keyboard, parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
 @bot.callback_query_handler(func=lambda call: call.data == "direct_deliver")
 def direct_deliver_start(call):
     msg = bot.edit_message_text(
-        "🚚 **Direct Account Delivery**\n\n"
+        "🚚 <b>Direct Account Delivery</b>\n\n"
         "Send in this format:\n"
-        "`[user_id] [account_type] [connection_type] [quantity] [account_details]`\n\n"
-        "**Example:**\n"
-        "`123456789 two_step 10+ 5 warnerbridget2773j@gmail.com:%%Hanif%9:%%Hanif%9:kunmeas@chitthi.in:https://www.linkedin.com/in/warner-bridget-6798a7321`\n\n"
-        "**For single account, quantity = 1**\n"
-        "**Account Types:** `two_step` or `hotmail`\n"
-        "**Connection Types:** `0+`, `1-9+`, `10+`, etc.\n"
-        "**Quantity:** 1-100",
+        "<code>[user_id] [account_type] [connection_type] [quantity] [account_details]</code>\n\n"
+        "<b>Example (Two-Step):</b>\n"
+        "<code>123456789 two_step 10+ 5 leonardomorris1481i@gmail.com:%Date10.07%:CEZFD3U5VF64IPMWVKQMZQ5VNH75EUE3:2fa_code_here:https://www.linkedin.com/in/leonardo-morris-5a2898332/</code>\n\n"
+        "<b>For single account, quantity = 1</b>\n"
+        "<b>Account Types:</b> <code>two_step</code> or <code>hotmail</code>\n"
+        "<b>Connection Types:</b> <code>0+</code>, <code>1-9+</code>, <code>10+</code>, etc.\n"
+        "<b>Quantity:</b> 1-100",
         call.message.chat.id, call.message.message_id,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     bot.register_next_step_handler(msg, process_direct_delivery)
 
@@ -1159,13 +1171,13 @@ def process_direct_delivery(message):
                     email = all_parts[0]
                     mail_pass = all_parts[1]
                     linkedin_pass = all_parts[2]
-                    recovery = all_parts[3]
+                    recovery_or_2fa = all_parts[3]
                     url = ':'.join(all_parts[4:])
                     url = fix_url_format(url)
                 else:
-                    email, mail_pass, linkedin_pass, recovery, url = "N/A", "N/A", "N/A", "N/A", "N/A"
+                    email, mail_pass, linkedin_pass, recovery_or_2fa, url = "N/A", "N/A", "N/A", "N/A", "N/A"
             except:
-                email, mail_pass, linkedin_pass, recovery, url = "N/A", "N/A", "N/A", "N/A", "N/A"
+                email, mail_pass, linkedin_pass, recovery_or_2fa, url = "N/A", "N/A", "N/A", "N/A", "N/A"
             
             # Write accounts to file
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -1175,9 +1187,9 @@ def process_direct_delivery(message):
                     f.write(f"Mail Password: {mail_pass}\n")
                     f.write(f"LinkedIn Password: {linkedin_pass}\n")
                     if account_type == "two_step":
-                        f.write(f"Two-Step Auth: {recovery}\n")
+                        f.write(f"Two-Step Auth: {recovery_or_2fa}\n")
                     else:
-                        f.write(f"Recovery Email: {recovery}\n")
+                        f.write(f"Recovery Email: {recovery_or_2fa}\n")
                     f.write(f"Profile URL: {url}\n")
                     f.write(f"{'='*40}\n")
             
@@ -1198,30 +1210,30 @@ def process_direct_delivery(message):
                 
                 # Send file to user
                 with open(filepath, 'rb') as file:
-                    caption = f"""✅ **Bulk Accounts Delivered!**
+                    caption = f"""✅ <b>Bulk Accounts Delivered!</b>
 
-📦 Delivery ID: #{delivery_ids[0]}-#{delivery_ids[-1]}
-🔐 Type: {acc_name}
-🔗 Connection: {connection_type}
-📦 Quantity: {quantity} accounts
-📅 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-📄 File: {filename}
+📦 <b>Delivery ID:</b> #{delivery_ids[0]}-#{delivery_ids[-1]}
+🔐 <b>Type:</b> {acc_name}
+🔗 <b>Connection:</b> {connection_type}
+📦 <b>Quantity:</b> {quantity} accounts
+📅 <b>Time:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+📄 <b>File:</b> {filename}
 
-⚠️ **Important:** 
+⚠️ <b>Important:</b> 
 1. Change passwords immediately
 2. Enable 2FA if available
 3. Report issues within 24 hours
 
-**Support:** {SUPPORT_USERNAME}"""
+<b>Support:</b> {SUPPORT_USERNAME}"""
                     
-                    bot.send_document(user_id, file, caption=caption, parse_mode="Markdown")
+                    bot.send_document(user_id, file, caption=caption, parse_mode="HTML")
                 
                 # Send confirmation to admin
                 bot.send_message(message.chat.id,
                                f"✅ {quantity} accounts delivered to user {user_id}\n"
                                f"Delivery IDs: #{delivery_ids[0]}-#{delivery_ids[-1]}\n"
                                f"File: {filename}",
-                               parse_mode="Markdown")
+                               parse_mode="HTML")
                 
                 # Clean up file after sending
                 os.remove(filepath)
@@ -1232,7 +1244,7 @@ def process_direct_delivery(message):
                                f"But added to delivery history. Error: {str(e)}")
         else:
             bot.send_message(message.chat.id, 
-                           "❌ Invalid format! Use: `[user_id] [type] [conn] [quantity] [details]`")
+                           "❌ Invalid format! Use: [user_id] [type] [conn] [quantity] [details]")
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Error: {str(e)}")
 
@@ -1243,10 +1255,10 @@ def show_delivery_history(call):
     if not deliveries:
         bot.edit_message_text("📭 No delivery history found.",
                             call.message.chat.id, call.message.message_id,
-                            parse_mode="Markdown")
+                            parse_mode="HTML")
         return
     
-    response = "📋 **Recent Deliveries**\n\n"
+    response = "📋 <b>Recent Deliveries</b>\n\n"
     for delivery in deliveries:
         delivery_id, user_id, acc_type, conn_type, details, delivered_by, delivery_time, username = delivery
         response += f"🆔 #{delivery_id}\n"
@@ -1256,15 +1268,15 @@ def show_delivery_history(call):
         response += "─" * 30 + "\n"
     
     bot.edit_message_text(response, call.message.chat.id, call.message.message_id,
-                         parse_mode="Markdown")
+                         parse_mode="HTML")
 
 # ======================= PRICE MANAGEMENT =======================
 @bot.message_handler(func=lambda msg: msg.text == "💰 Price Management")
 def price_management(msg):
     if msg.from_user.id == ADMIN_ID:
-        bot.send_message(msg.chat.id, "💰 **Price Management**\n\nSelect option:",
+        bot.send_message(msg.chat.id, "💰 <b>Price Management</b>\n\nSelect option:",
                         reply_markup=price_management_keyboard(),
-                        parse_mode="Markdown")
+                        parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
@@ -1288,11 +1300,11 @@ def handle_price_management(call):
             )
 
         bot.edit_message_text(
-            "🔐 **Edit Two-Step Prices**\nSelect connection to edit:",
+            "🔐 <b>Edit Two-Step Prices</b>\nSelect connection to edit:",
             call.message.chat.id,
             call.message.message_id,
             reply_markup=keyboard,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
@@ -1307,22 +1319,22 @@ def handle_price_management(call):
             )
 
         bot.edit_message_text(
-            "📧 **Edit Hotmail Prices**\nSelect connection to edit:",
+            "📧 <b>Edit Hotmail Prices</b>\nSelect connection to edit:",
             call.message.chat.id,
             call.message.message_id,
             reply_markup=keyboard,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
     if call.data == "view_prices":
-        response = "💰 **Current Prices**\n\n"
+        response = "💰 <b>Current Prices</b>\n\n"
 
-        response += "🔐 **Two-Step Authentication:**\n"
+        response += "🔐 <b>Two-Step Authentication:</b>\n"
         for conn, price in PRICES["two_step"].items():
             response += f"• {conn}: ${price}\n"
 
-        response += "\n📧 **Hotmail/Outlook:**\n"
+        response += "\n📧 <b>Hotmail/Outlook:</b>\n"
         for conn, price in PRICES["hotmail"].items():
             response += f"• {conn}: ${price}\n"
 
@@ -1330,7 +1342,7 @@ def handle_price_management(call):
             response,
             call.message.chat.id,
             call.message.message_id,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
@@ -1351,14 +1363,14 @@ def handle_price_management(call):
         current_price = PRICES[account_type][connection_type]
 
         msg = bot.edit_message_text(
-            f"✏️ **Edit Price**\n\n"
+            f"✏️ <b>Edit Price</b>\n\n"
             f"Type: {'Two-Step' if account_type == 'two_step' else 'Hotmail'}\n"
             f"Connection: {connection_type}\n"
             f"Current Price: ${current_price}\n\n"
             f"Send new price (number only):",
             call.message.chat.id,
             call.message.message_id,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
         bot.register_next_step_handler(
@@ -1375,12 +1387,12 @@ def update_price_step(message, account_type, connection_type):
         bot.send_message(message.chat.id,
                         f"✅ Price updated!\n"
                         f"{connection_type} is now ${new_price}",
-                        parse_mode="Markdown")
+                        parse_mode="HTML")
         
         # Show price management again
-        bot.send_message(message.chat.id, "💰 **Price Management**",
+        bot.send_message(message.chat.id, "💰 <b>Price Management</b>",
                         reply_markup=price_management_keyboard(),
-                        parse_mode="Markdown")
+                        parse_mode="HTML")
     except:
         bot.send_message(message.chat.id, "❌ Invalid price! Send a number only.")
 
@@ -1398,25 +1410,25 @@ def addbalance_command(message):
                 db.update_balance(user_id, amount)
                 new_balance = db.get_balance(user_id)
                 
-                response = f"""✅ **Balance Added!**
+                response = f"""✅ <b>Balance Added!</b>
 
-👤 User ID: `{user_id}`
-💰 Amount: ${amount:.2f}
-📊 Old Balance: ${old_balance:.2f}
-💳 New Balance: ${new_balance:.2f}"""
+👤 <b>User ID:</b> <code>{user_id}</code>
+💰 <b>Amount:</b> ${amount:.2f}
+📊 <b>Old Balance:</b> ${old_balance:.2f}
+💳 <b>New Balance:</b> ${new_balance:.2f}"""
                 
-                bot.send_message(message.chat.id, response, parse_mode="Markdown")
+                bot.send_message(message.chat.id, response, parse_mode="HTML")
                 
                 # Notify user
                 try:
                     bot.send_message(user_id, 
-                                   f"💰 Admin added ${amount:.2f} to your balance.\nNew balance: ${new_balance:.2f}")
+                                   f"💰 Admin added ${amount:.2f} to your balance.\nNew balance: ${new_balance:.2f}",
+                                   parse_mode="HTML")
                 except:
                     pass
             else:
                 bot.send_message(message.chat.id, 
-                               "❌ Format: `/addbalance [user_id] [amount]`",
-                               parse_mode="Markdown")
+                               "❌ Format: /addbalance [user_id] [amount]")
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Error: {str(e)}")
     else:
@@ -1435,15 +1447,15 @@ def statistics_button(msg):
         stock = db.get_all_stock()
         total_stock = sum(item[2] for item in stock)
         
-        response = f"""📊 **Statistics**
+        response = f"""📊 <b>Statistics</b>
 
-👥 Total Users: {total_users}
-💰 Total Balance: ${total_balance:.2f}
-🚚 Direct Deliveries: {total_deliveries}
-📦 Total Stock: {total_stock} accounts
-👑 Admin ID: `{ADMIN_ID}`"""
+👥 <b>Total Users:</b> {total_users}
+💰 <b>Total Balance:</b> ${total_balance:.2f}
+🚚 <b>Direct Deliveries:</b> {total_deliveries}
+📦 <b>Total Stock:</b> {total_stock} accounts
+👑 <b>Admin ID:</b> <code>{ADMIN_ID}</code>"""
         
-        bot.send_message(msg.chat.id, response, parse_mode="Markdown")
+        bot.send_message(msg.chat.id, response, parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
@@ -1455,12 +1467,12 @@ def users_list_button(msg):
             bot.send_message(msg.chat.id, "📭 No users found!")
             return
         
-        response = "👥 **All Users**\n\n"
+        response = "👥 <b>All Users</b>\n\n"
         for user in users:
             user_id, username, balance = user
-            response += f"🆔 `{user_id}`\n👤 @{username or 'N/A'}\n💰 ${balance:.2f}\n────────────\n"
+            response += f"🆔 <code>{user_id}</code>\n👤 @{username or 'N/A'}\n💰 ${balance:.2f}\n────────────\n"
         
-        bot.send_message(msg.chat.id, response, parse_mode="Markdown")
+        bot.send_message(msg.chat.id, response, parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
@@ -1468,54 +1480,54 @@ def users_list_button(msg):
 @bot.message_handler(func=lambda msg: msg.text == "🛒 Buy LinkedIn Accounts")
 def buy_accounts_button(msg):
     bot.send_message(msg.chat.id,
-                    "📋 **Select Account Type:**\n\n"
-                    "🔐 **Two-Step Authentication:**\n"
+                    "📋 <b>Select Account Type:</b>\n\n"
+                    "🔐 <b>Two-Step Authentication:</b>\n"
                     "• More secure accounts\n\n"
-                    "📧 **Hotmail/Outlook:**\n"
+                    "📧 <b>Hotmail/Outlook:</b>\n"
                     "• Hotmail/Outlook email based",
                     reply_markup=account_type_keyboard(),
-                    parse_mode="Markdown")
+                    parse_mode="HTML")
 
 @bot.message_handler(func=lambda msg: msg.text == "💰 Check My Balance")
 def check_balance_button(msg):
     balance = db.get_balance(msg.from_user.id)
     bot.send_message(msg.chat.id,
-                    f"💰 **Your Balance:** ${balance:.2f}\n👤 **Your ID:** `{msg.from_user.id}`",
-                    parse_mode="Markdown")
+                    f"💰 <b>Your Balance:</b> ${balance:.2f}\n👤 <b>Your ID:</b> <code>{msg.from_user.id}</code>",
+                    parse_mode="HTML")
 
 @bot.message_handler(func=lambda msg: msg.text == "💳 Add Balance")
 def add_balance_user_button(msg):
     user_id = msg.from_user.id
-    instructions = f"""💳 **Add Balance Instructions**
+    instructions = f"""💳 <b>Add Balance Instructions</b>
 
-**Your User ID:** `{user_id}`
-**Copy this ID when sending payment**
+<b>Your User ID:</b> <code>{user_id}</code>
+<b>Copy this ID when sending payment</b>
 
-**Payment Methods:**
-1. **Binance ID:** `{BINANCE_ID}`
-2. **USDT (BSC):** `{USDT_ADDRESS}`
+<b>Payment Methods:</b>
+1. <b>Binance ID:</b> <code>{BINANCE_ID}</code>
+2. <b>USDT (BSC):</b> <code>{USDT_ADDRESS}</code>
 
-**Steps:**
+<b>Steps:</b>
 1. Send payment to above address
 2. Take screenshot
 3. Send screenshot here with your User ID
 4. Admin will add balance
 
-**Support:** {SUPPORT_USERNAME}"""
+<b>Support:</b> {SUPPORT_USERNAME}"""
     
-    bot.send_message(msg.chat.id, instructions, parse_mode="Markdown")
+    bot.send_message(msg.chat.id, instructions, parse_mode="HTML")
 
 @bot.message_handler(func=lambda msg: msg.text == "📞 Support")
 def support_button(msg):
     bot.send_message(msg.chat.id,
-                    f"📞 **Support**\n\nContact: {SUPPORT_USERNAME}\nYour ID: `{msg.from_user.id}`",
-                    parse_mode="Markdown")
+                    f"📞 <b>Support</b>\n\nContact: {SUPPORT_USERNAME}\nYour ID: <code>{msg.from_user.id}</code>",
+                    parse_mode="HTML")
 
 @bot.message_handler(func=lambda msg: msg.text == "👑 Admin Panel")
 def admin_panel_button(msg):
     if msg.from_user.id == ADMIN_ID:
-        bot.send_message(msg.chat.id, "👑 **Admin Panel**", 
-                        reply_markup=admin_keyboard(), parse_mode="Markdown")
+        bot.send_message(msg.chat.id, "👑 <b>Admin Panel</b>", 
+                        reply_markup=admin_keyboard(), parse_mode="HTML")
     else:
         bot.send_message(msg.chat.id, "❌ Access denied!")
 
@@ -1528,32 +1540,32 @@ def main_menu_button(msg):
 def handle_account_type(call):
     if call.data == "type_two_step":
         bot.edit_message_text(
-            "🔐 **LinkedIn Two-Step Authentication**\n\n"
+            "🔐 <b>LinkedIn Two-Step Authentication</b>\n\n"
             "Select connection count:",
             call.message.chat.id, call.message.message_id,
             reply_markup=connection_keyboard("two_step"),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     elif call.data == "type_hotmail":
         bot.edit_message_text(
-            "📧 **LinkedIn Hotmail/Outlook Login**\n\n"
+            "📧 <b>LinkedIn Hotmail/Outlook Login</b>\n\n"
             "Select connection count:",
             call.message.chat.id, call.message.message_id,
             reply_markup=connection_keyboard("hotmail"),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_to_types")
 def back_to_account_types(call):
     bot.edit_message_text(
-        "📋 **Select Account Type:**\n\n"
-        "🔐 **Two-Step Authentication:**\n"
+        "📋 <b>Select Account Type:</b>\n\n"
+        "🔐 <b>Two-Step Authentication:</b>\n"
         "• More secure accounts\n\n"
-        "📧 **Hotmail/Outlook:**\n"
+        "📧 <b>Hotmail/Outlook:</b>\n"
         "• Hotmail/Outlook email based",
         call.message.chat.id, call.message.message_id,
         reply_markup=account_type_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('buy_'))
@@ -1571,13 +1583,13 @@ def handle_buy(call):
     }
     
     msg = bot.edit_message_text(
-        f"🛒 **Bulk Purchase**\n\n"
-        f"🔐 Type: {'Two-Step' if account_type == 'two_step' else 'Hotmail'}\n"
-        f"🔗 Connection: {connection_type}\n"
-        f"💰 Price per account: ${PRICES[account_type][connection_type]:.2f}\n\n"
-        f"📦 **Enter quantity (1-100):**",
+        f"🛒 <b>Bulk Purchase</b>\n\n"
+        f"🔐 <b>Type:</b> {'Two-Step' if account_type == 'two_step' else 'Hotmail'}\n"
+        f"🔗 <b>Connection:</b> {connection_type}\n"
+        f"💰 <b>Price per account:</b> ${PRICES[account_type][connection_type]:.2f}\n\n"
+        f"📦 <b>Enter quantity (1-100):</b>",
         call.message.chat.id, call.message.message_id,
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     bot.register_next_step_handler(msg, lambda m: process_quantity(m, purchase_data))
@@ -1596,10 +1608,11 @@ def process_quantity(message, purchase_data):
         if user_balance < total_price:
             bot.send_message(
                 message.chat.id,
-                f"❌ Insufficient balance!\n"
-                f"💰 Needed: ${total_price:.2f}\n"
-                f"💳 Available: ${user_balance:.2f}\n"
-                f"Please add balance first!"
+                f"❌ <b>Insufficient balance!</b>\n"
+                f"💰 <b>Needed:</b> ${total_price:.2f}\n"
+                f"💳 <b>Available:</b> ${user_balance:.2f}\n"
+                f"Please add balance first!",
+                parse_mode="HTML"
             )
             return
         
@@ -1609,9 +1622,10 @@ def process_quantity(message, purchase_data):
         if stock_count < quantity:
             bot.send_message(
                 message.chat.id,
-                f"❌ Insufficient stock!\n"
-                f"📦 Available: {stock_count} accounts\n"
-                f"📦 Requested: {quantity} accounts"
+                f"❌ <b>Insufficient stock!</b>\n"
+                f"📦 <b>Available:</b> {stock_count} accounts\n"
+                f"📦 <b>Requested:</b> {quantity} accounts",
+                parse_mode="HTML"
             )
             return
         
@@ -1631,7 +1645,8 @@ def process_quantity(message, purchase_data):
             else:
                 bot.send_message(
                     message.chat.id,
-                    f"❌ Not enough stock! Only {i} accounts available."
+                    f"❌ Not enough stock! Only {i} accounts available.",
+                    parse_mode="HTML"
                 )
                 return
         
@@ -1655,16 +1670,17 @@ def process_quantity(message, purchase_data):
         
         # Create .txt file for delivery
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"linkedin_{purchase_data['account_type']}_{purchase_data['connection_type']}_{quantity}_accounts_{timestamp}.txt"
+        account_type_name = "two_step" if purchase_data['account_type'] == 'two_step' else 'hotmail'
+        filename = f"linkedin_{account_type_name}_{purchase_data['connection_type']}_{quantity}_accounts_{timestamp}.txt"
         filepath = os.path.join(delivery_folder, filename)
         
         # Prepare account type name for display
         acc_name = "Two-Step Authentication" if purchase_data['account_type'] == 'two_step' else 'Hotmail/Outlook'
         
-        # Write accounts to file with proper formatting
+        # Write accounts to file with ONE-LINE format
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(f"✅ LinkedIn Accounts Purchase Receipt\n")
-            f.write(f"═" * 50 + "\n")
+            f.write(f"══════════════════════════════════════════════════\n")
             f.write(f"Order Details:\n")
             f.write(f"• Order Quantity: {quantity}\n")
             f.write(f"• Account Type: {acc_name}\n")
@@ -1672,128 +1688,106 @@ def process_quantity(message, purchase_data):
             f.write(f"• Price per account: ${purchase_data['price']:.2f}\n")
             f.write(f"• Total Price: ${total_price:.2f}\n")
             f.write(f"• Order Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"═" * 50 + "\n\n")
-            f.write(f"📋 Accounts List ({quantity}):\n")
-            f.write(f"═" * 50 + "\n")
+            f.write(f"══════════════════════════════════════════════════\n\n")
             
+            # Format Header based on account type
+            if purchase_data['account_type'] == "two_step":
+                f.write(f"📋 Two-Step Authentication Accounts ({quantity}):\n")
+                f.write(f"Format: email:mail_password:linkedin_password:two_step_code:url\n")
+                f.write(f"══════════════════════════════════════════════════\n\n")
+            else:
+                f.write(f"📋 Hotmail/Outlook Accounts ({quantity}):\n")
+                f.write(f"Format: email:mail_password:linkedin_password:recovery_email:url\n")
+                f.write(f"══════════════════════════════════════════════════\n\n")
+            
+            # Write each account in ONE LINE format
             for i, account_details in enumerate(accounts_list, 1):
-                f.write(f"\nAccount #{i}:\n")
-                f.write(f"─" * 30 + "\n")
+                # Clean the account details
+                account_details = account_details.strip()
                 
-                # Parse and format account details using smart splitting
-                try:
-                    # First split by : to get all parts
-                    all_parts = account_details.split(':')
-                    
-                    if len(all_parts) >= 5:
-                        # First 4 parts are fixed
-                        email = all_parts[0]
-                        mail_pass = all_parts[1]
-                        linkedin_pass = all_parts[2]
-                        recovery = all_parts[3]
-                        
-                        # Everything after the 4th : is the URL
-                        url = ':'.join(all_parts[4:])
-                        
-                        # Fix URL format
-                        url = fix_url_format(url)
-                        
-                        f.write(f"Email: {email}\n")
-                        f.write(f"Mail Password: {mail_pass}\n")
-                        f.write(f"LinkedIn Password: {linkedin_pass}\n")
-                        if purchase_data['account_type'] == "two_step":
-                            f.write(f"Two-Step Auth: {recovery}\n")
-                        else:
-                            f.write(f"Recovery Email: {recovery}\n")
-                        f.write(f"Profile URL: {url}\n")
-                    else:
-                        f.write(f"Raw Data: {account_details}\n")
-                except Exception as parse_error:
-                    f.write(f"Raw Data: {account_details}\n")
-                    f.write(f"Parse Error: {parse_error}\n")
-            
-            f.write(f"\n═" * 50 + "\n")
-            f.write(f"⚠️ Important Instructions:\n")
-            f.write(f"1. Change passwords immediately\n")
-            f.write(f"2. Enable 2FA if available\n")
-            f.write(f"3. Report issues within 24 hours\n")
-            f.write(f"4. Store this file securely\n")
-            f.write(f"\nSupport: {SUPPORT_USERNAME}\n")
+                # Fix common formatting issues
+                # If account has "https" in the middle, fix it
+                if " https" in account_details:
+                    account_details = account_details.replace(" https", "https")
+                if " http" in account_details:
+                    account_details = account_details.replace(" http", "http")
+                
+                # Add account number
+                f.write(f"Account #{i}:\n")
+                f.write(f"{account_details}\n")
+                f.write(f"{'─' * 40}\n")
         
-        # Prepare delivery message
-        user_msg = f"""✅ **Bulk Purchase Successful!**
-
-📦 Order Quantity: {quantity}
-🔐 Type: {acc_name}
-🔗 Connection: {purchase_data['connection_type']}
-💰 Price per account: ${purchase_data['price']:.2f}
-💰 Total Price: ${total_price:.2f}
-💳 New Balance: ${db.get_balance(purchase_data['user_id']):.2f}
-
-📄 **All accounts have been saved to a .txt file for easy access.**
-
-Download the file below:"""
-        
-        # Send success message
-        bot.send_message(message.chat.id, user_msg, parse_mode="Markdown")
-        
-        # Send the .txt file
+        # Send file to user
         with open(filepath, 'rb') as file:
-            bot.send_document(
-                message.chat.id,
-                file,
-                caption=f"📦 {quantity} LinkedIn Accounts\n"
-                       f"🔐 Type: {acc_name}\n"
-                       f"🔗 Connection: {purchase_data['connection_type']}\n"
-                       f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                parse_mode="Markdown"
-            )
-        
-        # Final instructions
-        final_msg = f"""⚠️ **Important Instructions:**
+            caption = f"""✅ <b>Bulk Purchase Completed!</b>
 
-1. ✅ **Download and save the .txt file**
-2. 🔐 **Change passwords immediately**
-3. 🛡️ **Enable 2FA if available**
-4. ⚠️ **Report issues within 24 hours**
-5. 💾 **Store the file securely**
+📦 <b>Quantity:</b> {quantity} accounts
+🔐 <b>Type:</b> {acc_name}
+🔗 <b>Connection:</b> {purchase_data['connection_type']}
+💰 <b>Price per account:</b> ${purchase_data['price']:.2f}
+💵 <b>Total:</b> ${total_price:.2f}
+📊 <b>Remaining Balance:</b> ${db.get_balance(purchase_data['user_id']):.2f}
+📅 <b>Order Time:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+📄 <b>File:</b> {filename}
 
-**Support:** {SUPPORT_USERNAME}"""
+⚠️ <b>Important:</b> 
+1. Change passwords immediately
+2. Enable 2FA if available
+3. Report issues within 24 hours
+
+<b>Support:</b> {SUPPORT_USERNAME}"""
+            
+            bot.send_document(message.chat.id, file, caption=caption, parse_mode="HTML")
         
-        bot.send_message(message.chat.id, final_msg, parse_mode="Markdown")
-        
-        # Clean up the file after sending
+        # Clean up file after sending
         os.remove(filepath)
         
+        # Send confirmation
+        bot.send_message(
+            message.chat.id,
+            f"✅ <b>Successfully purchased {quantity} {acc_name} accounts!</b>\n"
+            f"💰 <b>Total:</b> ${total_price:.2f} deducted from your balance.\n"
+            f"💳 <b>New Balance:</b> ${db.get_balance(purchase_data['user_id']):.2f}",
+            reply_markup=main_menu_keyboard(message.from_user.id == ADMIN_ID),
+            parse_mode="HTML"
+        )
+        
     except ValueError:
-        bot.send_message(message.chat.id, "❌ Please enter a valid number (1-100)!")
+        bot.send_message(message.chat.id, "❌ Invalid quantity! Please enter a number between 1-100.")
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Error: {str(e)}")
 
 # ======================= MAIN =======================
 if __name__ == "__main__":
-    ensure_folders()
-    
-    print("=" * 50)
-    print("🤖 LinkedIn Accounts Bot with Advanced Stock Management")
-    print(f"👑 Admin ID: {ADMIN_ID}")
-    print(f"💬 Support: {SUPPORT_USERNAME}")
-    print("=" * 50)
-    print("\n✅ Stock Management Features:")
-    print("1. ➕ Add Single Account")
-    print("2. 📦 Add Bulk Accounts (copy-paste)")
-    print("3. 📝 Manual Add (with quantity)")
-    print("4. 📋 View Complete Stock")
-    print("5. 🗑️ Clear Stock (with backup)")
-    print("6. 📤 Export Stock (download files)")
-    print("=" * 50)
-    print("\n✅ Delivery Features:")
-    print("1. 📄 Automatic .txt file delivery")
-    print("2. 📋 Well-formatted account files")
-    print("3. ⚠️ Important instructions included")
-    print("4. 🕒 Timestamped delivery")
-    print("5. 🔗 URL format fixed")
-    print("=" * 50)
-    print("\n🚀 Bot is running... Press Ctrl+C to stop")
-    
-    bot.infinity_polling()
+    try:
+        print("=" * 50)
+        print("🤖 LinkedIn Accounts Bot - Starting...")
+        print("=" * 50)
+        
+        # Check if folders exist
+        ensure_folders()
+        print("✅ Folders checked/created")
+        
+        # Test database connection
+        print("✅ Database initialized")
+        
+        # Test token
+        print(f"🤖 Bot Token: {BOT_TOKEN[:10]}...")
+        print(f"👑 Admin ID: {ADMIN_ID}")
+        print(f"📞 Support: {SUPPORT_USERNAME}")
+        
+        # Start bot
+        print("🔄 Starting bot polling...")
+        print("=" * 50)
+        print("Bot is now running. Press Ctrl+C to stop.")
+        print("=" * 50)
+        
+        bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        
+    except KeyboardInterrupt:
+        print("\n🛑 Bot stopped by user")
+    except Exception as e:
+        print(f"❌ Error starting bot: {e}")
+        print(f"❌ Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
